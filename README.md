@@ -1,4 +1,4 @@
-# COMP 582 - Quiz Generation Project
+# COMP 582 - Quiz Generation Project by Group P
 
 ## Installation
 
