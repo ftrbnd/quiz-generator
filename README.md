@@ -22,3 +22,14 @@
    ```sh
    gradio src/app.py
    ```
+
+## Unit Testing
+
+1. Activate the virtual environment
+   ```sh
+   make activate
+   ```
+2. Run the test command
+   ```sh
+   pytest
+   ```

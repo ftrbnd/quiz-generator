@@ -10,6 +10,8 @@ numpy==1.26.2
 Pillow==10.1.0
 pytesseract==0.3.10
 
+pytest==9.0.1
+
 # Additional NLTK data will be downloaded via:
 # python -m nltk.downloader punkt stopwords
 
