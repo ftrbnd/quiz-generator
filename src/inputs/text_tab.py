@@ -9,7 +9,7 @@ current_quiz_state = {
 }
 
 def format_quiz_markdown(questions: list, num_questions: int):
-    """Format given questions into markdown"""
+    """Format given questions into markdown, as a string"""
     output = ""
     
     if questions:
@@ -18,10 +18,10 @@ def format_quiz_markdown(questions: list, num_questions: int):
             output += f"**Q{i}.** {q['question']}\n\n"
             output += f"*Answer: {q['answer']}*\n\n"
     
-    return gr.Markdown(f"""
+    return f"""
         \n\n# Generated Quiz ({num_questions} questions)
         \n\n{output}
-        """)
+        """
 
 def generate_quiz_from_text(input: str, num_questions: int, question_types: list):
     global current_quiz_state
@@ -35,7 +35,11 @@ def generate_quiz_from_text(input: str, num_questions: int, question_types: list
     current_quiz_state['num_questions'] = num_questions
     current_quiz_state['question_types'] = question_types
 
-    return format_quiz_markdown(questions, num_questions)
+    md = format_quiz_markdown(questions, num_questions)
+    return (
+        gr.update(visible=True),
+        gr.Markdown(md)
+    )
 
 def shuffle_quiz():
     global current_quiz_state
@@ -46,9 +50,22 @@ def shuffle_quiz():
     shuffled_questions = current_quiz_state['questions'].copy()
     random.shuffle(shuffled_questions)
     
-    return format_quiz_markdown(shuffled_questions, current_quiz_state['num_questions'])
+    md=format_quiz_markdown(shuffled_questions, current_quiz_state['num_questions'])
+    return (
+        gr.update(visible=True),
+        gr.Markdown(md)
+    )
 
-    
+def download_quiz():
+    global current_quiz_state
+    md = format_quiz_markdown(current_quiz_state['questions'], current_quiz_state['num_questions'])
+
+    filename = "generated_quiz.md"
+    with open(filename, "w") as f:
+        f.write(md)
+    return (filename, gr.Markdown(md))
+
+
 def render():
     with gr.Tab("Text (prompt)"):
         with gr.Row():
@@ -69,18 +86,23 @@ def render():
 
                 with gr.Row():
                     generate_button = gr.Button("Generate", variant="primary")
-                    shuffle_button = gr.Button("🔀 Shuffle", variant="secondary")
+                    shuffle_button = gr.Button("Shuffle", variant="secondary")
             
             with gr.Column():
+                download_button = gr.DownloadButton("Download", visible=False)
                 text_output = gr.Markdown(label="Generated Quiz")
         
         generate_button.click(
             fn=generate_quiz_from_text,
             inputs=[text_input, num_questions,question_types],
-            outputs=text_output
+            outputs=[download_button, text_output]
         )
         shuffle_button.click(
             fn=shuffle_quiz,
             inputs=[],
-            outputs=text_output
+            outputs=[download_button, text_output]
+        )
+        download_button.click(
+            fn=download_quiz,
+            outputs=[download_button, text_output]
         )
