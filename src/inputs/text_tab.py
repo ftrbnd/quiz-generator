@@ -27,19 +27,24 @@ def render():
             
             with gr.Column():
                 download_button = gr.DownloadButton("Download", visible=False)
+                analyze_button = gr.Button("Analyze", visible=False, variant="secondary")
                 text_output = gr.Markdown(label="Generated Quiz")
         
         generate_button.click(
             fn=quiz.generate_from_text,
             inputs=[text_input, num_questions,question_types],
-            outputs=[download_button, text_output]
+            outputs=[download_button, analyze_button, text_output]
         )
         shuffle_button.click(
             fn=quiz.shuffle,
             inputs=[],
-            outputs=[download_button, text_output]
+            outputs=[download_button, analyze_button, text_output]
         )
         download_button.click(
             fn=quiz.download,
-            outputs=[download_button, text_output]
+            outputs=[download_button, analyze_button, text_output]
+        )
+        analyze_button.click(
+            fn=quiz.analyze,
+            outputs=[download_button, analyze_button, text_output]
         )

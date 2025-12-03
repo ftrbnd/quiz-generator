@@ -4,7 +4,7 @@ import gradio as gr
 
 from src.phases.quizzes import Quiz
 
-class TestQuizGenerationPhase:
+class TestQuizShuffling:
     @pytest.fixture
     def quiz_instance(self):
         return Quiz()
