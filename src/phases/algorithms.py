@@ -6,8 +6,7 @@ from gensim.models import Word2Vec
 from nltk.tokenize import word_tokenize
 import spacy
 
-from phases.preprocessing import get_stop_words, preprocess_text
-
+from . import preprocessing
 
 try:
     nlp = spacy.load("en_core_web_sm")
@@ -22,7 +21,7 @@ except LookupError:
 
 def extract_keywords_tfidf(text, top_n=10):
     """Extract keywords using TF-IDF"""
-    sentences = preprocess_text(text)
+    sentences = preprocessing.preprocess_text(text)
     
     if len(sentences) < 2:
         return []
@@ -40,7 +39,7 @@ def extract_keywords_tfidf(text, top_n=10):
 
 def extract_topics_lda(text, n_topics=3):
     """Extract topics using LDA"""
-    sentences = preprocess_text(text)
+    sentences = preprocessing.preprocess_text(text)
     
     if len(sentences) < 2:
         return []
@@ -81,11 +80,11 @@ def extract_entities_ner(text):
 
 def train_word_embeddings(text):
     """Train Word2Vec embeddings"""
-    sentences = preprocess_text(text)
+    sentences = preprocessing.preprocess_text(text)
     tokenized = [word_tokenize(s.lower()) for s in sentences]
 
     # Filter out stopwords and short words
-    stop_words = get_stop_words()
+    stop_words = preprocessing.get_stop_words()
     tokenized = [[w for w in sent if w.isalnum() and w not in stop_words and len(w) > 2] 
                 for sent in tokenized]
     

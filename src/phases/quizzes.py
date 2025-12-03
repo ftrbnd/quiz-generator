@@ -1,6 +1,6 @@
 import random
 import gradio as gr
-from phases.question_types import generate_fill_blank_questions
+from . import question_types as q_types
 
 class Quiz:
     def __init__(self):
@@ -14,7 +14,7 @@ class Quiz:
         if not input.strip():
             return "Please provide text to generate questions from."
         
-        questions = generate_fill_blank_questions(input, num_questions)
+        questions = q_types.generate_fill_blank_questions(input, num_questions)
 
         self.current_quiz_state['questions'] = questions
         self.current_quiz_state['num_questions'] = num_questions

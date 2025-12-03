@@ -1,3 +1,6 @@
+import pytest
+
+@pytest.mark.skip(reason="Not yet implemented")
 class TestQuestionCreationPhase:
     def test_story_9(self):
         x = "this"

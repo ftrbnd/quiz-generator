@@ -1,8 +1,7 @@
 import random
 import re
 
-from phases.preprocessing import preprocess_text
-from phases.algorithms import extract_entities_ner, extract_keywords_tfidf, extract_topics_lda, train_word_embeddings
+from . import preprocessing, algorithms
 
 def find_similar_words(word_model, word, top_n=5):
     """Find similar words using word embeddings"""
@@ -17,8 +16,8 @@ def find_similar_words(word_model, word, top_n=5):
 
 def generate_fill_blank_questions(text, n_questions=5):
     """Generate fill-in-the-blank questions using keywords"""
-    sentences = preprocess_text(text)
-    keywords = extract_keywords_tfidf(text, top_n=20)
+    sentences = preprocessing.preprocess_text(text)
+    keywords = algorithms.extract_keywords_tfidf(text, top_n=20)
     
     questions = []
     used_sentences = set()
@@ -48,9 +47,9 @@ def generate_fill_blank_questions(text, n_questions=5):
 
 def generate_mcq_questions(text, n_questions=5):
     """Generate multiple choice questions using NER and embeddings"""
-    entities = extract_entities_ner(text)
-    word_model = train_word_embeddings(text)
-    sentences = preprocess_text(text)
+    entities = algorithms.extract_entities_ner(text)
+    word_model = algorithms.train_word_embeddings(text)
+    sentences = preprocessing.preprocess_text(text)
     
     questions = []
     used_entities = set()
@@ -94,7 +93,7 @@ def generate_mcq_questions(text, n_questions=5):
 
 def generate_topic_questions(text, n_questions=3):
     """Generate questions based on LDA topics"""
-    topics = extract_topics_lda(text, n_topics=5)
+    topics = algorithms.extract_topics_lda(text, n_topics=5)
     
     questions = []
     for i, topic_words in enumerate(topics[:n_questions]):
