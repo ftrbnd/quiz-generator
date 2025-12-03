@@ -2,7 +2,7 @@ import random
 import re
 
 from phases.preprocessing import preprocess_text
-from phases.question_creation import extract_entities_ner, extract_keywords_tfidf, extract_topics_lda, train_word_embeddings
+from phases.algorithms import extract_entities_ner, extract_keywords_tfidf, extract_topics_lda, train_word_embeddings
 
 def find_similar_words(word_model, word, top_n=5):
     """Find similar words using word embeddings"""
