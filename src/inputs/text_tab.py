@@ -20,10 +20,12 @@ def render():
                     label="Number of Questions"
                 )
                 question_types = gr.CheckboxGroup([
-                    ("Multiple choice", "mcq"),
-                    ("Fill in the blank", "fill_blank"),
-                    ("Topic", "topic")
+                        ("Multiple choice", "mcq"),
+                        ("Fill in the blank", "fill_blank"),
+                        ("True/False", "t/f"),
+                        ("Short answer", "short_answer")
                     ],
+                    value="mcq",
                     label="Question types", 
                     show_select_all=True
                 )
@@ -33,9 +35,11 @@ def render():
                     shuffle_button = gr.Button("Shuffle", variant="secondary")
             
             with gr.Column():
-                download_button = gr.DownloadButton("Download", visible=False)
-                analyze_button = gr.Button("Analyze", visible=False, variant="secondary")
                 text_output = gr.Markdown(label="Generated Quiz")
+                file_type_radio = gr.Radio(["csv", "md", "pdf", "txt"], label="File type")
+                with gr.Row():
+                    download_button = gr.DownloadButton("Download", visible=False)
+                    analyze_button = gr.Button("Analyze", visible=False, variant="secondary")
         
         generate_button.click(
             fn=quiz.generate_from_text,
@@ -49,7 +53,8 @@ def render():
         )
         download_button.click(
             fn=quiz.download,
-            outputs=[download_button, analyze_button, text_output]
+            inputs=[file_type_radio],
+            outputs=[download_button, text_output]
         )
         analyze_button.click(
             fn=quiz.analyze,

@@ -1,430 +1,256 @@
 import pytest
-from unittest.mock import patch, mock_open, call
+from unittest.mock import patch, mock_open, MagicMock
 import gradio as gr
+import csv
+from io import StringIO
+import os
 
 from src.phases.quizzes import Quiz
 
-class TestQuizDownload:
+class TestQuizFileFormats:
     @pytest.fixture
     def quiz_instance(self):
-        """Fixture providing a fresh Quiz instance for each test"""
         return Quiz()
     
     @pytest.fixture
-    def sample_markdown_content(self):
-        """Fixture providing sample markdown content"""
-        return """
-        # Generated Quiz (3 questions)
-
-        ## Fill in the Blank Questions
-
-        **Q1.** Python is a high-level _____ language.
-
-        *Answer: programming*
-
-        **Q2.** _____ created Python in 1991.
-
-        *Answer: Guido van Rossum*
-
-        **Q3.** Python is widely used for web development, _____, and artificial intelligence.
-
-        *Answer: data science*
-        """
+    def sample_questions(self):
+        return [
+            {
+                'question': 'Python is a high-level _____ language.',
+                'answer': 'programming',
+                'type': 'fill_blank'
+            },
+            {
+                'question': 'What is Python?',
+                'answer': 'A programming language',
+                'options': ['A) A programming language', 'B) A snake', 'C) A framework'],
+                'type': 'mcq'
+            },
+            {
+                'question': 'Explain the concept of object-oriented programming.',
+                'answer': 'OOP is a programming paradigm',
+                'type': 'topic'
+            }
+        ]
     
-    def test_download_creates_file_with_correct_name(self, quiz_instance, sample_markdown_content):
-        """Test that download creates a file with the correct filename"""
-        quiz_instance.markdown_result = sample_markdown_content
+    @pytest.fixture
+    def setup_quiz_with_questions(self, quiz_instance, sample_questions):
+        """Setup quiz instance with sample questions"""
+        quiz_instance.current_quiz_state['questions'] = sample_questions
+        quiz_instance.current_quiz_state['num_questions'] = len(sample_questions)
+        quiz_instance.markdown_result = "# Sample Quiz\n\n**Q1.** Test question?"
+        return quiz_instance
+    
+    def test_download_markdown_format(self, setup_quiz_with_questions):
+        """Test downloading quiz in Markdown format"""
+        quiz = setup_quiz_with_questions
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            filename, markdown_output = quiz.download("md")
             
-            # Verify file was opened with correct name and mode
-            mock_file.assert_called_once_with("generated_quiz.md", "w")
-    
-    def test_download_writes_markdown_content(self, quiz_instance, sample_markdown_content):
-        """Test that download writes the markdown_result to the file"""
-        quiz_instance.markdown_result = sample_markdown_content
-        
-        with patch('builtins.open', mock_open()) as mock_file:
-            quiz_instance.download()
+            assert filename == "generated_quiz.md"
+            mock_file.assert_called_once_with("generated_quiz.md", "w", encoding='utf-8')
             
-            # Get the file handle
+            # Verify markdown content was written
             handle = mock_file()
+            written_content = handle.write.call_args[0][0]
+            assert "# Sample Quiz" in written_content
+    
+    def test_download_csv_format(self, setup_quiz_with_questions):
+        """Test downloading quiz in CSV format"""
+        quiz = setup_quiz_with_questions
+        
+        with patch('builtins.open', mock_open()) as mock_file:
+            filename, markdown_output = quiz.download("csv")
             
-            # Verify write was called with the markdown content
-            handle.write.assert_called_once_with(sample_markdown_content)
+            assert filename == "generated_quiz.csv"
+            mock_file.assert_called_once()
+            
+            # Verify CSV content
+            handle = mock_file()
+            written_content = handle.write.call_args[0][0]
+            
+            # Parse CSV to verify structure
+            csv_reader = csv.reader(StringIO(written_content))
+            rows = list(csv_reader)
+            
+            # Check header
+            assert rows[0] == ['Question Number', 'Type', 'Question', 'Answer', 'Options']
+            assert len(rows) == 4  # Header + 3 questions
     
-    def test_download_returns_correct_tuple_format(self, quiz_instance, sample_markdown_content):
-        """Test that download returns the correct tuple (filename, gr.Markdown)"""
-        quiz_instance.markdown_result = sample_markdown_content
+    def test_download_txt_format(self, setup_quiz_with_questions):
+        """Test downloading quiz in plain text format"""
+        quiz = setup_quiz_with_questions
         
-        with patch('builtins.open', mock_open()):
-            result = quiz_instance.download()
-        
-        # Should return a tuple of (filename, gr.Markdown)
-        assert isinstance(result, tuple)
-        assert len(result) == 2
-        
-        # First element should be the filename string
-        filename = result[0]
-        assert filename == "generated_quiz.md"
-        assert isinstance(filename, str)
-        
-        # Second element should be a Gradio Markdown component
-        markdown_output = result[1]
-        assert isinstance(markdown_output, gr.Markdown)
+        with patch('builtins.open', mock_open()) as mock_file:
+            filename, markdown_output = quiz.download("txt")
+            
+            assert filename == "generated_quiz.txt"
+            mock_file.assert_called_once_with("generated_quiz.txt", "w", encoding='utf-8')
+            
+            # Verify text content
+            handle = mock_file()
+            written_content = handle.write.call_args[0][0]
+            
+            assert "Generated Quiz" in written_content
+            assert "Q1." in written_content
+            assert "Answer:" in written_content
     
-    def test_download_markdown_contains_content(self, quiz_instance, sample_markdown_content):
-        """Test that the returned Markdown component contains the correct content"""
-        quiz_instance.markdown_result = sample_markdown_content
+    def test_download_pdf_format(self, setup_quiz_with_questions):
+        """Test downloading quiz in PDF format"""
+        quiz = setup_quiz_with_questions
         
-        with patch('builtins.open', mock_open()):
-            result = quiz_instance.download()
-        
-        _, markdown_output = result
-        markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
-        
-        # Verify the markdown contains expected content
-        assert "Generated Quiz" in markdown_text
-        assert "Python is a high-level _____ language" in markdown_text
-        assert "programming" in markdown_text
+        with patch('src.phases.quizzes.SimpleDocTemplate') as mock_doc:
+            mock_doc_instance = MagicMock()
+            mock_doc.return_value = mock_doc_instance
+            
+            filename, markdown_output = quiz.download("pdf")
+            
+            assert filename == "generated_quiz.pdf"
+            mock_doc_instance.build.assert_called_once()
     
-    def test_download_with_empty_markdown(self, quiz_instance):
-        """Test download when markdown_result is empty"""
+    def test_download_with_empty_questions(self, quiz_instance):
+        """Test download with no questions"""
+        quiz_instance.current_quiz_state['questions'] = []
         quiz_instance.markdown_result = ""
         
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
-            
-            # Should still create file and write empty string
-            mock_file.assert_called_once_with("generated_quiz.md", "w")
-            handle = mock_file()
-            handle.write.assert_called_once_with("")
-            
-            # Should still return proper tuple
-            assert isinstance(result, tuple)
-            assert result[0] == "generated_quiz.md"
+        filename, markdown_output = quiz_instance.download("md")
+        
+        assert filename is None
+        markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
+        assert "No quiz to download" in markdown_text
     
-    def test_download_with_quiz_and_analysis(self, quiz_instance):
-        """Test download with quiz that includes analysis section"""
-        markdown_with_analysis = """
-        # Generated Quiz (2 questions)
-
-        ## Fill in the Blank Questions
-
-        **Q1.** Test question _____?
-
-        *Answer: answer*
-
-        ---
-        ## Analysis
-
-        **Key Terms (TF-IDF):** python, programming, language
-
-        **Named Entities (NER):** Python (PRODUCT), Google (ORG)
-
-        **Topics (LDA):**
-        Topic 1: python, code, syntax
-        """
-        quiz_instance.markdown_result = markdown_with_analysis
+    def test_download_with_invalid_file_type(self, setup_quiz_with_questions):
+        """Test download with invalid file type defaults to markdown"""
+        quiz = setup_quiz_with_questions
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            filename, _ = quiz.download("invalid")
             
-            handle = mock_file()
-            handle.write.assert_called_once_with(markdown_with_analysis)
-            
-            # Verify analysis is in returned markdown
-            _, markdown_output = result
-            markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
-            assert "## Analysis" in markdown_text
-            assert "Key Terms (TF-IDF)" in markdown_text
+            # Should default to markdown
+            assert filename == "generated_quiz.md"
     
-    def test_download_with_special_characters(self, quiz_instance):
-        """Test download with special characters in markdown"""
-        special_markdown = """
-        # Generated Quiz
-
-        **Q1.** Python's syntax uses "quotes" & special chars: <, >, *, /, %
-
-        *Answer: special*
-        """
-        quiz_instance.markdown_result = special_markdown
-        
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
-            
-            handle = mock_file()
-            handle.write.assert_called_once_with(special_markdown)
-    
-    def test_download_with_unicode_characters(self, quiz_instance):
-        """Test download with unicode characters in markdown"""
-        unicode_markdown = """
-        # Generated Quiz
-
-        **Q1.** Python supports Unicode: 你好, Привет, مرحبا 🐍
-
-        *Answer: unicode*
-        """
-        quiz_instance.markdown_result = unicode_markdown
-        
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
-            
-            handle = mock_file()
-            handle.write.assert_called_once_with(unicode_markdown)
-    
-    def test_download_multiple_times_overwrites(self, quiz_instance):
-        """Test that downloading multiple times overwrites the same file"""
-        first_markdown = "# First Quiz"
-        second_markdown = "# Second Quiz"
-        
-        with patch('builtins.open', mock_open()) as mock_file:
-            # First download
-            quiz_instance.markdown_result = first_markdown
-            quiz_instance.download()
-            
-            # Second download
-            quiz_instance.markdown_result = second_markdown
-            quiz_instance.download()
-            
-            # Verify file was opened twice with same filename
-            assert mock_file.call_count == 2
-            calls = [call("generated_quiz.md", "w"), call("generated_quiz.md", "w")]
-            mock_file.assert_has_calls(calls)
-    
-    def test_download_after_generate(self, quiz_instance):
-        """Test download after generate_from_text workflow"""
-        sample_questions = [
-            {'question': 'Test _____?', 'answer': 'question', 'type': 'fill_blank'}
-        ]
-        
-        with patch('src.phases.quizzes.q_types.generate_fill_blank_questions') as mock_generate:
-            mock_generate.return_value = sample_questions
-            
-            # Generate quiz
-            quiz_instance.generate_from_text("Test input", 1, ['fill_blank'])
-            
-            # Download
-            with patch('builtins.open', mock_open()) as mock_file:
-                result = quiz_instance.download()
-                
-                # Verify file was created
-                mock_file.assert_called_once()
-                
-                # Verify content includes generated quiz
-                handle = mock_file()
-                written_content = handle.write.call_args[0][0]
-                assert "Test _____?" in written_content
-    
-    def test_download_after_shuffle(self, quiz_instance):
-        """Test download after shuffle workflow"""
-        quiz_instance.current_quiz_state['questions'] = [
-            {'question': 'Q1 _____?', 'answer': 'A1', 'type': 'fill_blank'},
-            {'question': 'Q2 _____?', 'answer': 'A2', 'type': 'fill_blank'}
-        ]
-        quiz_instance.current_quiz_state['num_questions'] = 2
-        
-        # Shuffle
-        with patch('random.shuffle', side_effect=lambda x: x.reverse()):
-            quiz_instance.shuffle()
-        
-        # Download
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
-            
-            handle = mock_file()
-            written_content = handle.write.call_args[0][0]
-            
-            # Verify shuffled content is in download
-            assert "Q1 _____?" in written_content
-            assert "Q2 _____?" in written_content
-    
-    def test_download_after_analyze(self, quiz_instance):
-        """Test download after analyze workflow"""
-        quiz_instance.input_text = "Sample text for analysis"
-        quiz_instance.markdown_result = "# Quiz\n\n"
-        
-        with patch('src.phases.quizzes.algorithms.extract_keywords_tfidf') as mock_keywords, \
-             patch('src.phases.quizzes.algorithms.extract_entities_ner') as mock_entities, \
-             patch('src.phases.quizzes.algorithms.extract_topics_lda') as mock_topics:
-            
-            mock_keywords.return_value = ['keyword1', 'keyword2']
-            mock_entities.return_value = []
-            mock_topics.return_value = []
-            
-            # Analyze
-            quiz_instance.analyze()
-        
-        # Download
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
-            
-            handle = mock_file()
-            written_content = handle.write.call_args[0][0]
-            
-            # Verify analysis is in download
-            assert "## Analysis" in written_content
-            assert "Key Terms (TF-IDF)" in written_content
-    
-    def test_download_file_handle_closed_properly(self, quiz_instance, sample_markdown_content):
-        """Test that file handle is properly closed after writing"""
-        quiz_instance.markdown_result = sample_markdown_content
-        
-        m = mock_open()
-        with patch('builtins.open', m):
-            quiz_instance.download()
-            
-            # Verify the context manager was used (file gets closed)
-            handle = m()
-            handle.__enter__.assert_called_once()
-            handle.__exit__.assert_called_once()
-    
-    def test_download_with_very_long_content(self, quiz_instance):
-        """Test download with very long markdown content"""
-        # Create a large quiz with many questions
-        long_markdown = "# Generated Quiz (100 questions)\n\n"
-        for i in range(1, 101):
-            long_markdown += f"**Q{i}.** Question {i} _____?\n\n*Answer: Answer {i}*\n\n"
-        
-        quiz_instance.markdown_result = long_markdown
-        
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
-            
-            handle = mock_file()
-            handle.write.assert_called_once()
-            
-            # Verify the entire content was written
-            written_content = handle.write.call_args[0][0]
-            assert len(written_content) == len(long_markdown)
-            assert "Q100" in written_content
-    
-    def test_download_preserves_markdown_formatting(self, quiz_instance):
-        """Test that download preserves markdown formatting"""
-        formatted_markdown = """
-        # Generated Quiz (1 questions)
-
-        ## Fill in the Blank Questions
-
-        **Q1.** This is **bold** and *italic* text.
-
-        *Answer: formatted*
-
-        ---
-
-        > This is a blockquote
-
-        - List item 1
-        - List item 2
-
-        `code snippet`
-        """
-        quiz_instance.markdown_result = formatted_markdown
-        
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
-            
-            handle = mock_file()
-            written_content = handle.write.call_args[0][0]
-            
-            # Verify all markdown formatting is preserved
-            assert "**bold**" in written_content
-            assert "*italic*" in written_content
-            assert "> This is a blockquote" in written_content
-            assert "- List item 1" in written_content
-            assert "`code snippet`" in written_content
-    
-    def test_download_handles_newlines_correctly(self, quiz_instance):
-        """Test that download handles various newline formats"""
-        markdown_with_newlines = "Line 1\nLine 2\n\nLine 3\r\nLine 4"
-        quiz_instance.markdown_result = markdown_with_newlines
-        
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
-            
-            handle = mock_file()
-            written_content = handle.write.call_args[0][0]
-            
-            assert written_content == markdown_with_newlines
-    
-    def test_download_returns_same_content_as_stored(self, quiz_instance, sample_markdown_content):
-        """Test that returned Markdown matches stored markdown_result"""
-        quiz_instance.markdown_result = sample_markdown_content
+    def test_download_success_message(self, setup_quiz_with_questions):
+        """Test that download returns success message"""
+        quiz = setup_quiz_with_questions
         
         with patch('builtins.open', mock_open()):
-            filename, markdown_output = quiz_instance.download()
-        
-        markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
-        
-        # The returned markdown should match what's stored
-        assert sample_markdown_content in markdown_text or markdown_text in sample_markdown_content
+            filename, markdown_output = quiz.download("md")
+            
+            markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
+            assert "Quiz downloaded" in markdown_text
+            assert "generated_quiz.md" in markdown_text
     
-    def test_download_integration_complete_workflow(self, quiz_instance):
-        """Test complete workflow: generate -> shuffle -> analyze -> download"""
-        sample_text = "Python is a programming language. It was created by Guido."
-        sample_questions = [
-            {'question': 'Python is a _____ language.', 'answer': 'programming', 'type': 'fill_blank'}
+    def test_download_handles_exceptions(self, setup_quiz_with_questions):
+        """Test that download handles file write errors gracefully"""
+        quiz = setup_quiz_with_questions
+        
+        with patch('builtins.open', side_effect=IOError("Disk full")):
+            filename, markdown_output = quiz.download("md")
+            
+            assert filename is None
+            markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
+            assert "Error downloading quiz" in markdown_text
+            assert "Disk full" in markdown_text
+    
+    def test_format_as_csv_with_mcq_options(self, setup_quiz_with_questions):
+        """Test CSV formatting properly handles MCQ options"""
+        quiz = setup_quiz_with_questions
+        questions = quiz.current_quiz_state['questions']
+        
+        csv_content = quiz.format_as_csv(questions)
+        csv_reader = csv.reader(StringIO(csv_content))
+        rows = list(csv_reader)
+        
+        # Find the MCQ row
+        mcq_row = None
+        for row in rows[1:]:
+            if row[1] == 'mcq':
+                mcq_row = row
+                break
+        
+        assert mcq_row is not None
+        assert '|' in mcq_row[4]  # Options are pipe-separated
+        assert 'A) A programming language' in mcq_row[4]
+    
+    def test_format_as_txt_structure(self, setup_quiz_with_questions):
+        """Test plain text formatting structure"""
+        quiz = setup_quiz_with_questions
+        questions = quiz.current_quiz_state['questions']
+        
+        txt_content = quiz.format_as_txt(questions)
+        
+        assert "Generated Quiz" in txt_content
+        assert "=" in txt_content  # Title separator
+        assert "-" in txt_content  # Question separator
+        assert "[Fill Blank]" in txt_content or "Fill Blank" in txt_content
+        assert "[Mcq]" in txt_content or "Mcq" in txt_content
+    
+    def test_clean_text_for_pdf(self, quiz_instance):
+        """Test PDF text cleaning function"""
+        # Test markdown bold/italic
+        text = "This is **bold** and *italic* text"
+        cleaned = quiz_instance._clean_text_for_pdf(text)
+        assert '<b>bold</b>' in cleaned
+        assert '<i>italic</i>' in cleaned
+        
+        # Test blanks
+        text = "Fill in the _____"
+        cleaned = quiz_instance._clean_text_for_pdf(text)
+        assert '___________' in cleaned
+        
+        # Test XML escaping
+        text = "Question with <tag> and & symbol"
+        cleaned = quiz_instance._clean_text_for_pdf(text)
+        assert '&lt;tag&gt;' in cleaned
+        assert '&amp;' in cleaned
+    
+    def test_download_preserves_unicode(self, quiz_instance):
+        """Test that all formats preserve unicode characters"""
+        unicode_questions = [
+            {
+                'question': 'Python supports 你好 and émojis 🐍',
+                'answer': 'unicode',
+                'type': 'fill_blank'
+            }
         ]
         
-        # Complete workflow
-        with patch('src.phases.quizzes.q_types.generate_fill_blank_questions') as mock_generate:
-            mock_generate.return_value = sample_questions
-            quiz_instance.generate_from_text(sample_text, 1, ['fill_blank'])
+        quiz_instance.current_quiz_state['questions'] = unicode_questions
+        quiz_instance.markdown_result = "Test"
         
-        with patch('random.shuffle'):
-            quiz_instance.shuffle()
+        # Test CSV
+        csv_content = quiz_instance.format_as_csv(unicode_questions)
+        assert '你好' in csv_content
+        assert '🐍' in csv_content
         
-        with patch('src.phases.quizzes.algorithms.extract_keywords_tfidf') as mock_keywords, \
-             patch('src.phases.quizzes.algorithms.extract_entities_ner') as mock_entities, \
-             patch('src.phases.quizzes.algorithms.extract_topics_lda') as mock_topics:
-            
-            mock_keywords.return_value = ['python']
-            mock_entities.return_value = [{'text': 'Guido', 'label': 'PERSON'}]
-            mock_topics.return_value = [['programming', 'language']]
-            
-            quiz_instance.analyze()
-        
-        # Download
-        with patch('builtins.open', mock_open()) as mock_file:
-            filename, markdown_output = quiz_instance.download()
-            
-            # Verify everything is in the download
-            handle = mock_file()
-            written_content = handle.write.call_args[0][0]
-            
-            assert "Python is a _____ language" in written_content
-            assert "## Analysis" in written_content
-            assert "python" in written_content
-            assert "Guido" in written_content
+        # Test TXT
+        txt_content = quiz_instance.format_as_txt(unicode_questions)
+        assert '你好' in txt_content
+        assert '🐍' in txt_content
     
-    def test_download_without_prior_generation(self, quiz_instance):
-        """Test download when no quiz has been generated yet"""
-        # markdown_result should be empty initially
-        assert quiz_instance.markdown_result == ""
+    def test_download_all_formats_sequentially(self, setup_quiz_with_questions):
+        """Test downloading all formats in sequence"""
+        quiz = setup_quiz_with_questions
+        formats = ["md", "csv", "txt", "pdf"]
+        
+        for file_format in formats:
+            if file_format == "pdf":
+                with patch('src.phases.quizzes.SimpleDocTemplate'):
+                    filename, _ = quiz.download(file_format)
+            else:
+                with patch('builtins.open', mock_open()):
+                    filename, _ = quiz.download(file_format)
+            
+            # Verify correct filename extension
+            assert filename.endswith(f".{file_format}")
+    
+    def test_csv_newline_parameter(self, setup_quiz_with_questions):
+        """Test that CSV uses newline='' parameter"""
+        quiz = setup_quiz_with_questions
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            quiz.download("csv")
             
-            # Should still work, just with empty content
-            mock_file.assert_called_once_with("generated_quiz.md", "w")
-            handle = mock_file()
-            handle.write.assert_called_once_with("")
-            
-            assert result[0] == "generated_quiz.md"
-    
-    @patch('builtins.open', side_effect=IOError("Disk full"))
-    def test_download_handles_io_error(self, mock_file, quiz_instance, sample_markdown_content):
-        """Test that download properly propagates IO errors"""
-        quiz_instance.markdown_result = sample_markdown_content
-        
-        with pytest.raises(IOError, match="Disk full"):
-            quiz_instance.download()
-    
-    @patch('builtins.open', side_effect=PermissionError("No write permission"))
-    def test_download_handles_permission_error(self, mock_file, quiz_instance, sample_markdown_content):
-        """Test that download properly propagates permission errors"""
-        quiz_instance.markdown_result = sample_markdown_content
-        
-        with pytest.raises(PermissionError, match="No write permission"):
-            quiz_instance.download()
+            # Verify newline parameter is set
+            call_kwargs = mock_file.call_args[1]
+            assert call_kwargs.get('newline') == ''

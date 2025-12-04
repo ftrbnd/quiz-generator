@@ -44,13 +44,15 @@ class TestInputValidation:
         """Test generation with empty input text"""
         result = quiz_instance.generate_from_text("", 5, ['fill_blank'])
         
-        assert result == "Please provide text to generate questions from."
+        assert isinstance(result, tuple)
+        assert result[2] == "Please provide text to generate questions from."
     
     def test_generate_with_whitespace_only(self, quiz_instance):
         """Test generation with whitespace-only input"""
         result = quiz_instance.generate_from_text("   \n\t  ", 5, ['fill_blank'])
         
-        assert result == "Please provide text to generate questions from."
+        assert isinstance(result, tuple)
+        assert result[2] == "Please provide text to generate questions from."
     
     def test_generate_with_none_input(self, quiz_instance):
         """Test generation with None input"""
