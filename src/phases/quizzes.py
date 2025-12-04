@@ -35,6 +35,7 @@ class Quiz:
                 "Please select at least one question type."
             )
         
+        print(question_types)
         all_questions = []
         questions_per_type = num_questions // len(question_types)
         remainder = num_questions % len(question_types)
@@ -48,8 +49,12 @@ class Quiz:
                     questions = q_types.generate_fill_blank_questions(input, count)
                 elif q_type == 'mcq':
                     questions = q_types.generate_mcq_questions(input, count)
-                elif q_type == 'topic':
-                    questions = q_types.generate_topic_questions(input, count)
+                elif q_type == 't/f':
+                    print("generating t/f questions...")
+                    questions = q_types.generate_true_false_questions(input, count)
+                    print("got them:",questions)
+                elif q_type == "short_answer":
+                    questions = q_types.generate_short_answer_questions(input, count)
                 else:
                     continue
                 
@@ -101,18 +106,21 @@ class Quiz:
             if q_type not in questions_by_type:
                 questions_by_type[q_type] = []
             questions_by_type[q_type].append(q)
+
         
         output = f"\n\n# Generated Quiz ({num_questions} questions)\n\n"
         
         type_titles = {
-            'fill_blank': '## Fill in the Blank Questions',
-            'mcq': '## Multiple Choice Questions',
-            'topic': '## Topic Questions',
+            'fill_blank': '## Fill in the blank Questions',
+            'mcq': '## Multiple choice Questions',
+            't/f': '## True/false Questions',
+            'short_answer': '## Short answer Questions',
         }
         
         # format the questions by question type
         question_number = 1
         for q_type, type_questions in questions_by_type.items():
+            print(q_type)
             if type_questions:
                 output += f"{type_titles.get(q_type, '## Questions')}\n\n"
                 
@@ -126,7 +134,7 @@ class Quiz:
                         output += f"\n\n*Answer: {q['answer']}*\n\n"
                     elif q_type == 'topic':
                         output += f"*Answer: {q['answer']}*\n\n"
-                    elif q_type in ['fill_blank', 'short_answer', 'open_ended']:
+                    elif q_type in ['fill_blank', 'short_answer', 't/f']:
                         output += f"*Answer: {q['answer']}*\n\n"
                     
                     question_number += 1

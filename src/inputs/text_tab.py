@@ -20,9 +20,10 @@ def render():
                     label="Number of Questions"
                 )
                 question_types = gr.CheckboxGroup([
-                    ("Multiple choice", "mcq"),
-                    ("Fill in the blank", "fill_blank"),
-                    ("Topic", "topic")
+                        ("Multiple choice", "mcq"),
+                        ("Fill in the blank", "fill_blank"),
+                        ("True/False", "t/f"),
+                        ("Short answer", "short_answer")
                     ],
                     value="mcq",
                     label="Question types", 
