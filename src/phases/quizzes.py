@@ -110,6 +110,7 @@ class Quiz:
             'topic': '## Topic Questions',
         }
         
+        # format the questions by question type
         question_number = 1
         for q_type, type_questions in questions_by_type.items():
             if type_questions:
@@ -119,11 +120,11 @@ class Quiz:
                     output += f"**Q{question_number}.** {q['question']}\n\n"
                     
                     # Format based on question type
-                    if q_type == 'multiple_choice' and 'options' in q:
+                    if q_type == 'mcq' and 'options' in q:
                         for option in q['options']:
-                            output += f"   {option}\n"
-                        output += f"\n*Answer: {q['answer']}*\n\n"
-                    elif q_type == 'true_false':
+                            output += f"\n- {option}"
+                        output += f"\n\n*Answer: {q['answer']}*\n\n"
+                    elif q_type == 'topic':
                         output += f"*Answer: {q['answer']}*\n\n"
                     elif q_type in ['fill_blank', 'short_answer', 'open_ended']:
                         output += f"*Answer: {q['answer']}*\n\n"
