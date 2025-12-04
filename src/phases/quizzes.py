@@ -53,9 +53,11 @@ class Quiz:
         self.current_quiz_state['question_types'] = question_types
 
         self.markdown_result = self.format_markdown(all_questions, len(all_questions))
+
+        show_buttons = "0 questions" not in self.markdown_result
         return (
-            gr.update(visible=True),
-            gr.update(visible=True),
+            gr.update(visible=show_buttons),
+            gr.update(visible=show_buttons),
             gr.Markdown(self.markdown_result)
         )
 
@@ -71,9 +73,11 @@ class Quiz:
         random.shuffle(shuffled_questions)
         
         self.markdown_result = self.format_markdown(shuffled_questions, self.current_quiz_state['num_questions'])
+
+        show_buttons = "0 questions" not in self.markdown_result
         return (
-            gr.update(visible=True),
-            gr.update(visible=True),
+            gr.update(visible=show_buttons),
+            gr.update(visible=show_buttons),
             gr.Markdown(self.markdown_result)
         )
     
@@ -121,8 +125,6 @@ class Quiz:
                 output += "\n"
         
         return output
-
-
 
     def download(self):
         filename = "generated_quiz.md"
