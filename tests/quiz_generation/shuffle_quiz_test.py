@@ -38,13 +38,17 @@ class TestQuizShuffling:
     def test_shuffle_with_empty_questions(self, quiz_instance):
         """Test shuffling when no questions exist in quiz state"""
         result = quiz_instance.shuffle()
-        assert result == "Please generate a quiz first before shuffling!"
+
+        assert isinstance(result, tuple) 
+        assert result[2] == "Please generate a quiz first before shuffling!"
     
     def test_shuffle_with_uninitialized_state(self, quiz_instance):
         """Test shuffling when quiz state is empty"""
         quiz_instance.current_quiz_state['questions'] = []
         result = quiz_instance.shuffle()
-        assert result == "Please generate a quiz first before shuffling!"
+        
+        assert isinstance(result, tuple) 
+        assert result[2] == "Please generate a quiz first before shuffling!"
     
     def test_shuffle_maintains_question_count(self, quiz_instance, sample_questions):
         """Test that shuffling maintains the same number of questions"""
@@ -75,7 +79,7 @@ class TestQuizShuffling:
             result = quiz_instance.shuffle()
         
         # Extract the markdown output
-        _, markdown_output = result
+        _, _, markdown_output = result
         markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
         
         # Verify all questions and answers are present
@@ -91,17 +95,22 @@ class TestQuizShuffling:
         
         result = quiz_instance.shuffle()
         
-        # Should return a tuple of (gr.update, gr.Markdown)
+        # Should return a tuple of (gr.update, gr.update, gr.Markdown)
         assert isinstance(result, tuple)
-        assert len(result) == 2
+        assert len(result) == 3
         
         # First element should be a dict with visible=True
         gradio_update = result[0]
         assert isinstance(gradio_update, dict)
         assert gradio_update.get('visible') is True
+
+        # Second element should be a dict with visible=True
+        gradio_update = result[1]
+        assert isinstance(gradio_update, dict)
+        assert gradio_update.get('visible') is True
         
-        # Second element should be a Gradio Markdown component
-        markdown_output = result[1]
+        # Third element should be a Gradio Markdown component
+        markdown_output = result[2]
         assert isinstance(markdown_output, gr.Markdown)
     
     def test_shuffle_does_not_modify_original_state(self, quiz_instance, sample_questions):
@@ -150,7 +159,7 @@ class TestQuizShuffling:
         quiz_instance.current_quiz_state['num_questions'] = len(sample_questions)
         
         result = quiz_instance.shuffle()
-        _, markdown_output = result
+        _, _, markdown_output = result
         
         markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
         
@@ -168,10 +177,11 @@ class TestQuizShuffling:
             
             # Verify each result is valid
             assert isinstance(result, tuple)
-            assert len(result) == 2
+            assert len(result) == 3
             
-            gradio_update, markdown_output = result
-            assert gradio_update.get('visible') is True
+            gradio_update_1, gradio_update_2, markdown_output = result
+            assert gradio_update_1.get('visible') is True
+            assert gradio_update_2.get('visible') is True
             assert isinstance(markdown_output, gr.Markdown)
     
     def test_shuffle_with_single_question(self, quiz_instance):
@@ -191,7 +201,7 @@ class TestQuizShuffling:
         
         # Should still work and return valid output
         assert isinstance(result, tuple)
-        _, markdown_output = result
+        _, _, markdown_output = result
         markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
         assert 'The capital of France is _____.' in markdown_text
     
@@ -203,7 +213,7 @@ class TestQuizShuffling:
         with patch('random.shuffle', side_effect=lambda x: x.reverse()):
             result = quiz_instance.shuffle()
         
-        _, markdown_output = result
+        _, _, markdown_output = result
         markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
         
         # Verify all required fields are present in output

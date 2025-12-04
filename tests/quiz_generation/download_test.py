@@ -36,7 +36,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = sample_markdown_content
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             # Verify file was opened with correct name and mode
             mock_file.assert_called_once_with("generated_quiz.md", "w")
@@ -46,7 +46,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = sample_markdown_content
         
         with patch('builtins.open', mock_open()) as mock_file:
-            quiz_instance.download()
+            quiz_instance.download("md")
             
             # Get the file handle
             handle = mock_file()
@@ -59,7 +59,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = sample_markdown_content
         
         with patch('builtins.open', mock_open()):
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
         
         # Should return a tuple of (filename, gr.Markdown)
         assert isinstance(result, tuple)
@@ -79,7 +79,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = sample_markdown_content
         
         with patch('builtins.open', mock_open()):
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
         
         _, markdown_output = result
         markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
@@ -94,7 +94,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = ""
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             # Should still create file and write empty string
             mock_file.assert_called_once_with("generated_quiz.md", "w")
@@ -129,7 +129,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = markdown_with_analysis
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             handle = mock_file()
             handle.write.assert_called_once_with(markdown_with_analysis)
@@ -152,7 +152,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = special_markdown
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             handle = mock_file()
             handle.write.assert_called_once_with(special_markdown)
@@ -169,7 +169,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = unicode_markdown
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             handle = mock_file()
             handle.write.assert_called_once_with(unicode_markdown)
@@ -182,11 +182,11 @@ class TestQuizDownload:
         with patch('builtins.open', mock_open()) as mock_file:
             # First download
             quiz_instance.markdown_result = first_markdown
-            quiz_instance.download()
+            quiz_instance.download("md")
             
             # Second download
             quiz_instance.markdown_result = second_markdown
-            quiz_instance.download()
+            quiz_instance.download("md")
             
             # Verify file was opened twice with same filename
             assert mock_file.call_count == 2
@@ -207,7 +207,7 @@ class TestQuizDownload:
             
             # Download
             with patch('builtins.open', mock_open()) as mock_file:
-                result = quiz_instance.download()
+                result = quiz_instance.download("md")
                 
                 # Verify file was created
                 mock_file.assert_called_once()
@@ -231,7 +231,7 @@ class TestQuizDownload:
         
         # Download
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             handle = mock_file()
             written_content = handle.write.call_args[0][0]
@@ -258,7 +258,7 @@ class TestQuizDownload:
         
         # Download
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             handle = mock_file()
             written_content = handle.write.call_args[0][0]
@@ -273,7 +273,7 @@ class TestQuizDownload:
         
         m = mock_open()
         with patch('builtins.open', m):
-            quiz_instance.download()
+            quiz_instance.download("md")
             
             # Verify the context manager was used (file gets closed)
             handle = m()
@@ -290,7 +290,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = long_markdown
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             handle = mock_file()
             handle.write.assert_called_once()
@@ -323,7 +323,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = formatted_markdown
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             handle = mock_file()
             written_content = handle.write.call_args[0][0]
@@ -341,7 +341,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = markdown_with_newlines
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             handle = mock_file()
             written_content = handle.write.call_args[0][0]
@@ -353,7 +353,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = sample_markdown_content
         
         with patch('builtins.open', mock_open()):
-            filename, markdown_output = quiz_instance.download()
+            filename, markdown_output = quiz_instance.download("md")
         
         markdown_text = markdown_output.value if hasattr(markdown_output, 'value') else str(markdown_output)
         
@@ -387,7 +387,7 @@ class TestQuizDownload:
         
         # Download
         with patch('builtins.open', mock_open()) as mock_file:
-            filename, markdown_output = quiz_instance.download()
+            filename, markdown_output = quiz_instance.download("md")
             
             # Verify everything is in the download
             handle = mock_file()
@@ -404,7 +404,7 @@ class TestQuizDownload:
         assert quiz_instance.markdown_result == ""
         
         with patch('builtins.open', mock_open()) as mock_file:
-            result = quiz_instance.download()
+            result = quiz_instance.download("md")
             
             # Should still work, just with empty content
             mock_file.assert_called_once_with("generated_quiz.md", "w")
@@ -419,7 +419,7 @@ class TestQuizDownload:
         quiz_instance.markdown_result = sample_markdown_content
         
         with pytest.raises(IOError, match="Disk full"):
-            quiz_instance.download()
+            quiz_instance.download("md")
     
     @patch('builtins.open', side_effect=PermissionError("No write permission"))
     def test_download_handles_permission_error(self, mock_file, quiz_instance, sample_markdown_content):
@@ -427,4 +427,4 @@ class TestQuizDownload:
         quiz_instance.markdown_result = sample_markdown_content
         
         with pytest.raises(PermissionError, match="No write permission"):
-            quiz_instance.download()
+            quiz_instance.download("md")

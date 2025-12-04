@@ -317,7 +317,7 @@ class Quiz:
                 None,
                 gr.Markdown("No quiz to download. Please generate a quiz first.")
             )
-        file_type = "md" if not file_type else file_type
+        file_type = "md" if file_type not in ["csv", "md", "pdf", "txt"] else file_type
         filename = f"generated_quiz.{file_type}"
         try:
             if file_type == "csv":
