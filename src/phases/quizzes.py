@@ -35,7 +35,6 @@ class Quiz:
                 "Please select at least one question type."
             )
         
-        print(question_types)
         all_questions = []
         questions_per_type = num_questions // len(question_types)
         remainder = num_questions % len(question_types)
@@ -50,9 +49,7 @@ class Quiz:
                 elif q_type == 'mcq':
                     questions = q_types.generate_mcq_questions(input, count)
                 elif q_type == 't/f':
-                    print("generating t/f questions...")
                     questions = q_types.generate_true_false_questions(input, count)
-                    print("got them:",questions)
                 elif q_type == "short_answer":
                     questions = q_types.generate_short_answer_questions(input, count)
                 else:
@@ -120,7 +117,6 @@ class Quiz:
         # format the questions by question type
         question_number = 1
         for q_type, type_questions in questions_by_type.items():
-            print(q_type)
             if type_questions:
                 output += f"{type_titles.get(q_type, '## Questions')}\n\n"
                 
