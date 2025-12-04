@@ -15,16 +15,44 @@ class Quiz:
 
     def generate_from_text(self, input: str, num_questions: int, question_types: list):
         if not input.strip():
-            return "Please provide text to generate questions from."
+            return (
+                gr.update(visible=False),
+                gr.update(visible=False),
+                "Please provide text to generate questions from."
+            )
+        if not question_types:
+            return (
+                gr.update(visible=False),
+                gr.update(visible=False),
+                "Please select at least one question type."
+            )
         
-        questions = q_types.generate_fill_blank_questions(input, num_questions)
+        all_questions = []
+        questions_per_type = num_questions // len(question_types)
+        remainder = num_questions % len(question_types)
+
+        for i, q_type in enumerate(question_types):
+            # Add extra question to first types if there's a remainder
+            count = questions_per_type + (1 if i < remainder else 0)
+            
+            if count > 0:
+                if q_type == 'fill_blank':
+                    questions = q_types.generate_fill_blank_questions(input, count)
+                elif q_type == 'mcq':
+                    questions = q_types.generate_mcq_questions(input, count)
+                elif q_type == 'topic':
+                    questions = q_types.generate_topic_questions(input, count)
+                else:
+                    continue
+                
+                all_questions.extend(questions)
 
         self.input_text = input
-        self.current_quiz_state['questions'] = questions
-        self.current_quiz_state['num_questions'] = num_questions
+        self.current_quiz_state['questions'] = all_questions
+        self.current_quiz_state['num_questions'] = len(all_questions)
         self.current_quiz_state['question_types'] = question_types
 
-        self.markdown_result = self.format_markdown(questions, num_questions)
+        self.markdown_result = self.format_markdown(all_questions, len(all_questions))
         return (
             gr.update(visible=True),
             gr.update(visible=True),
@@ -33,7 +61,11 @@ class Quiz:
 
     def shuffle(self):
         if not self.current_quiz_state['questions']:
-            return "Please generate a quiz first before shuffling!"
+            return (
+                gr.update(visible=False),
+                gr.update(visible=False),
+                "Please generate a quiz first before shuffling!"
+            )
         
         shuffled_questions = self.current_quiz_state['questions'].copy()
         random.shuffle(shuffled_questions)
@@ -47,18 +79,49 @@ class Quiz:
     
     def format_markdown(self, questions: list, num_questions: int):
         """Format given questions into markdown, as a string"""
-        output = ""
+        if not questions:
+            return "# Generated Quiz (0 questions)\n\nNo questions generated."
         
-        if questions:
-            output += "## Fill in the Blank Questions\n\n"
-            for i, q in enumerate(questions, 1):
-                output += f"**Q{i}.** {q['question']}\n\n"
-                output += f"*Answer: {q['answer']}*\n\n"
+        # Group questions by type
+        questions_by_type = {}
+        for q in questions:
+            q_type = q.get('type', 'unknown')
+            if q_type not in questions_by_type:
+                questions_by_type[q_type] = []
+            questions_by_type[q_type].append(q)
         
-        return f"""
-            \n\n# Generated Quiz ({num_questions} questions)
-            \n\n{output}
-            """
+        output = f"\n\n# Generated Quiz ({num_questions} questions)\n\n"
+        
+        type_titles = {
+            'fill_blank': '## Fill in the Blank Questions',
+            'mcq': '## Multiple Choice Questions',
+            'topic': '## Topic Questions',
+        }
+        
+        question_number = 1
+        for q_type, type_questions in questions_by_type.items():
+            if type_questions:
+                output += f"{type_titles.get(q_type, '## Questions')}\n\n"
+                
+                for q in type_questions:
+                    output += f"**Q{question_number}.** {q['question']}\n\n"
+                    
+                    # Format based on question type
+                    if q_type == 'multiple_choice' and 'options' in q:
+                        for option in q['options']:
+                            output += f"   {option}\n"
+                        output += f"\n*Answer: {q['answer']}*\n\n"
+                    elif q_type == 'true_false':
+                        output += f"*Answer: {q['answer']}*\n\n"
+                    elif q_type in ['fill_blank', 'short_answer', 'open_ended']:
+                        output += f"*Answer: {q['answer']}*\n\n"
+                    
+                    question_number += 1
+                
+                output += "\n"
+        
+        return output
+
 
 
     def download(self):

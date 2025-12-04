@@ -19,7 +19,14 @@ def render():
                     step=1,
                     label="Number of Questions"
                 )
-                question_types = gr.CheckboxGroup(["Multiple choice", "True/false", "Short answer", "Open-ended", "Fill in the blank"], label="Question types", show_select_all=True)
+                question_types = gr.CheckboxGroup([
+                    ("Multiple choice", "mcq"),
+                    ("Fill in the blank", "fill_blank"),
+                    ("Topic", "topic")
+                    ],
+                    label="Question types", 
+                    show_select_all=True
+                )
 
                 with gr.Row():
                     generate_button = gr.Button("Generate", variant="primary")
