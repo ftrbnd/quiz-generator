@@ -3,6 +3,11 @@
 ## Prerequisites
 
 - Python 3.12
+- Groq API Key-- open Groq account and use this when running:
+import os  
+os.environ["GROQ_API_KEY"] = "your_secret_key_here"
+
+Or add an .env file with API key
 
 ## Installation
 
