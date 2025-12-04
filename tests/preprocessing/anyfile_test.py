@@ -2,8 +2,10 @@
 import pytest
 from unittest.mock import patch
 import gradio as gr
+from src.phases.quizzes import Quiz
 
-class TestFileValidation:
+class TestAnyFileValidation:
+  
   @pytest.fixture
   def FileTypesAcceptedTest(x):  
     x = "Testing"
