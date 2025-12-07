@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
 # src/phases/llm_client.py
 
-API_KEY = "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"
-
+import os
 from typing import List, Optional
 from groq import Groq
+from dotenv import load_dotenv
+
+# Load .env file if present
+load_dotenv()
+
+API_KEY = os.getenv("GROQ_API_KEY")
+
+if not API_KEY:
+    raise ValueError("GROQ_API_KEY environment variable is missing.")
 
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
@@ -53,3 +61,4 @@ SOURCE:
         {"role": "system", "content": system_msg},
         {"role": "user", "content": user_msg},
     ])
+
