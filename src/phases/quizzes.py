@@ -22,41 +22,9 @@ class Quiz:
             'question_types': []
         }
 
-    def generate_with_ai(self, input: str, num_questions: int, question_types: list):
+# gen_type can be 'ai' or 'text'
+    def generate(self, gen_type: str, input: str, num_questions: int, question_types: list):
         if not input or not input.strip():
-            return (
-                    gr.update(visible=False),
-                    gr.update(visible=False),
-                    "Please provide text to generate questions from."
-                )
-        try:
-            result = llm_client.generate_from_llm(
-                source_text=input,
-                num_questions=num_questions,
-                question_types=question_types
-            )
-            self.markdown_result = result
-            self.input_text = input
-            # TODO: extract questions from Groq response
-            # self.current_quiz_state['questions'] = all_questions
-            # self.current_quiz_state['num_questions'] = len(all_questions)
-            self.current_quiz_state['question_types'] = question_types
-
-            show_buttons = "0 questions" not in self.markdown_result
-            return (
-                gr.update(visible=show_buttons),
-                gr.update(visible=show_buttons),
-                gr.Markdown(self.markdown_result)
-            )
-        except Exception as e:
-            return (
-                gr.update(visible=False),
-                gr.update(visible=False),
-                f"**Error calling Groq API:** {e}"
-            )
-
-    def generate_from_text(self, input: str, num_questions: int, question_types: list):
-        if not input.strip():
             return (
                 gr.update(visible=False),
                 gr.update(visible=False),
@@ -69,10 +37,44 @@ class Quiz:
                 "Please select at least one question type."
             )
         
-        all_questions = []
+        try:
+            all_questions = self._generate_with_ai(input, num_questions, question_types) if gen_type == 'ai' else self._generate_from_text(input, num_questions, question_types)
+            print(all_questions)
+
+            self.input_text = input
+            self.current_quiz_state['questions'] = all_questions
+            self.current_quiz_state['num_questions'] = len(all_questions)
+            self.current_quiz_state['question_types'] = question_types
+            self.markdown_result = self.format_markdown(all_questions, len(all_questions))
+
+            show_buttons = "0 questions" not in self.markdown_result
+            return (
+                gr.update(visible=show_buttons),
+                gr.update(visible=show_buttons),
+                gr.Markdown(self.markdown_result)
+            )
+        except Exception as e:
+            return (
+                gr.update(visible=False),
+                gr.update(visible=False),
+                f"**Error generating questions:** {e}"
+            )
+
+    def _generate_with_ai(self, input: str, num_questions: int, question_types: list):
+        result = llm_client.generate_from_llm(
+            source_text=input,
+            num_questions=num_questions,
+            question_types=question_types
+        )
+
+        return result
+
+
+    def _generate_from_text(self, input: str, num_questions: int, question_types: list):
         questions_per_type = num_questions // len(question_types)
         remainder = num_questions % len(question_types)
 
+        all_questions = []
         for i, q_type in enumerate(question_types):
             # Add extra question to first types if there's a remainder
             count = questions_per_type + (1 if i < remainder else 0)
@@ -90,20 +92,7 @@ class Quiz:
                     continue
                 
                 all_questions.extend(questions)
-
-        self.input_text = input
-        self.current_quiz_state['questions'] = all_questions
-        self.current_quiz_state['num_questions'] = len(all_questions)
-        self.current_quiz_state['question_types'] = question_types
-
-        self.markdown_result = self.format_markdown(all_questions, len(all_questions))
-
-        show_buttons = "0 questions" not in self.markdown_result
-        return (
-            gr.update(visible=show_buttons),
-            gr.update(visible=show_buttons),
-            gr.Markdown(self.markdown_result)
-        )
+        return all_questions
 
     def shuffle(self):
         if not self.current_quiz_state['questions']:

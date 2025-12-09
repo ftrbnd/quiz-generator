@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # src/phases/llm_client.py
 
+import json
 import os
-from typing import List, Optional
+from typing import List, Literal, Optional, TypedDict
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -19,6 +20,11 @@ DEFAULT_MODEL = "llama-3.3-70b-versatile"
 # Prevent model context-length failure
 MAX_SOURCE_CHARS = 8000  # safe limit for most Groq models
 
+QuestionType = Literal["fill_blank", "mcq", "t/f", "short_answer"]
+class Question(TypedDict):
+    question: str
+    answer: str
+    type: QuestionType
 
 def _get_client() -> Groq:
     """Initialize Groq client with partial-key debug logging."""
@@ -44,9 +50,58 @@ def chat_completion(
         temperature=temperature,
         max_tokens=max_tokens,
         stream=False,
+        response_format={"type": "json_object"}
     )
 
     return response.choices[0].message.content
+
+def _parse_questions(raw_response: str) -> List[Question]:
+    """
+    Parse and validate the JSON response from the LLM.
+    Returns a typed list of Question objects.
+    """
+    try:
+        data = json.loads(raw_response)
+        
+        # Handle different possible JSON structures
+        if isinstance(data, list):
+            questions = data
+        elif isinstance(data, dict) and "questions" in data:
+            questions = data["questions"]
+        else:
+            raise ValueError(f"Unexpected JSON structure: {data}")
+        # TODO: multiple choice questions are not formatted properly
+        # Validate and type-check each question
+        validated_questions: List[Question] = []
+        for q in questions:
+            if not isinstance(q, dict):
+                continue
+                
+            # Ensure required fields exist
+            if "question" not in q or "answer" not in q or "type" not in q:
+                print(f"WARNING: Skipping malformed question: {q}")
+                continue
+            
+            # Validate type field
+            if q["type"] not in ["fill_blank", "mcq", "t/f", "short_answer"]:
+                print(f"WARNING: Invalid question type '{q['type']}', defaulting to 'short_answer'")
+                q["type"] = "short_answer"
+            
+            validated_questions.append(Question(
+                question=str(q["question"]),
+                answer=str(q["answer"]),
+                type=q["type"]
+            ))
+        
+        return validated_questions
+        
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Failed to parse JSON: {e}")
+        print(f"Raw response: {raw_response[:500]}...")
+        return []
+    except Exception as e:
+        print(f"ERROR: Unexpected error parsing questions: {e}")
+        return []
 
 
 def generate_from_llm(
@@ -77,16 +132,34 @@ def generate_from_llm(
     user_msg = f"""
 Create **{num_questions}** quiz questions based on the material below.
 Use question types: {type_str}.
-Include an "Answer:" line directly under each question.
-Respond ONLY in Markdown, well formatted.
+
+Respond with a JSON object containing a "questions" array. Each question object must have:
+- "question": the question text (string)
+- "answer": the correct answer (string)
+- "type": one of "fill_blank", "mcq", "t/f", or "short_answer"
+
+For multiple choice questions (mcq), format the answer as: "A) option1, B) option2, C) option3, D) option4. Correct: A"
+
+Example format:
+{{
+  "questions": [
+    {{
+      "question": "What is 2+2?",
+      "answer": "4",
+      "type": "short_answer"
+    }}
+  ]
+}}
 
 SOURCE MATERIAL:
 \"\"\"{source_text}\"\"\"
 """
 
-    return chat_completion(
+    raw_response = chat_completion(
         [
             {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg},
         ]
     )
+    return _parse_questions(raw_response)
+
