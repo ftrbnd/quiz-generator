@@ -209,3 +209,9 @@ __marimo__/
 # Gradio
 gradio-env
 .gradio
+*.md
+!README.md
+*.txt
+!requirements.txt
+*.pdf
+*.csv
