@@ -1,39 +1,68 @@
-﻿# src/inputs/text_tab.py
-
-import gradio as gr
-from phases.llm_client import generate_quiz_from_text
+﻿import gradio as gr
+from phases.quizzes import Quiz
 
 def render():
+    quiz = Quiz()
+
     with gr.Tab("Text (prompt)"):
-        # Input area
-        prompt = gr.Textbox(
-            lines=15,
-            label="Paste or type your text here",
-            placeholder="Enter text for quiz generation..."
-        )
-        num_q = gr.Slider(
-            minimum=1, maximum=50, step=1, value=5,
-            label="Number of questions"
-        )
-        q_types = gr.CheckboxGroup(
-            choices=["Multiple choice", "Short answer", "True/False", "Fill in the blank"],
-            value=[],
-            label="Question types (optional)"
-        )
-        btn = gr.Button("Generate quiz")
-        output = gr.Markdown()
-
-        def on_click_generate(text, n, types):
-            if not text or not text.strip():
-                return "⚠️ Please provide some input text."
-            try:
-                result = generate_quiz_from_text(
-                    source_text=text,
-                    num_questions=n,
-                    question_types=types
+        with gr.Row():
+            with gr.Column():
+                text_input = gr.Textbox(
+                    label="Input Text",
+                    placeholder="Enter a prompt",
+                    lines=12
                 )
-                return result
-            except Exception as e:
-                return f"**Error calling Groq API:** {e}"
+                num_questions = gr.Slider(
+                    minimum=3,
+                    maximum=15,
+                    value=5,
+                    step=1,
+                    label="Number of Questions"
+                )
+                question_types = gr.CheckboxGroup([
+                        ("Multiple choice", "mcq"),
+                        ("Fill in the blank", "fill_blank"),
+                        ("True/False", "t/f"),
+                        ("Short answer", "short_answer")
+                    ],
+                    value="mcq",
+                    label="Question types", 
+                    show_select_all=True
+                )
 
-        btn.click(fn=on_click_generate, inputs=[prompt, num_q, q_types], outputs=output)
+                with gr.Row():
+                    generate_button = gr.Button("Generate", variant="primary")
+                    llm_button = gr.Button("Generate with AI")
+                    shuffle_button = gr.Button("Shuffle", variant="secondary")
+            
+            with gr.Column():
+                text_output = gr.Markdown(label="Generated Quiz")
+                file_type_radio = gr.Radio(["csv", "md", "pdf", "txt"], label="File type")
+                with gr.Row():
+                    download_button = gr.DownloadButton("Download", visible=False)
+                    analyze_button = gr.Button("Analyze", visible=False, variant="secondary")
+        
+        generate_button.click(
+            fn=quiz.generate_from_text,
+            inputs=[text_input, num_questions, question_types],
+            outputs=[download_button, analyze_button, text_output]
+        )
+        llm_button.click(
+            fn=quiz.generate_with_ai, 
+            inputs=[text_input, num_questions, question_types], 
+            outputs=[download_button, analyze_button, text_output]
+        )
+        shuffle_button.click(
+            fn=quiz.shuffle,
+            inputs=[],
+            outputs=[download_button, analyze_button, text_output]
+        )
+        download_button.click(
+            fn=quiz.download,
+            inputs=[file_type_radio],
+            outputs=[download_button, text_output]
+        )
+        analyze_button.click(
+            fn=quiz.analyze,
+            outputs=[download_button, analyze_button, text_output]
+        )

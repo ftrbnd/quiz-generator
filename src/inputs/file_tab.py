@@ -1,8 +1,5 @@
-﻿# src/inputs/file_tab.py
-
-import gradio as gr
-from phases.llm_client import generate_quiz_from_text
-import os
+﻿import gradio as gr
+from phases.llm_client import generate_from_llm
 
 def render():
     with gr.Tab("Upload .txt file"):
@@ -48,7 +45,7 @@ def render():
                 return "⚠️ Uploaded file seems empty."
 
             try:
-                return generate_quiz_from_text(
+                return generate_from_llm(
                     source_text=text,
                     num_questions=n,
                     question_types=types

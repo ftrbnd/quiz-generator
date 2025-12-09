@@ -49,7 +49,7 @@ def chat_completion(
     return response.choices[0].message.content
 
 
-def generate_quiz_from_text(
+def generate_from_llm(
     source_text: str,
     num_questions: int = 5,
     question_types: Optional[List[str]] = None,
