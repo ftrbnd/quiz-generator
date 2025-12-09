@@ -1,4 +1,6 @@
 gradio==6.0.1
+python-dotenv==1.2.1
+groq==0.37.1
 
 spacy==3.7.5
 nltk==3.8.1

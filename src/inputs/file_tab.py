@@ -1,35 +1,56 @@
-import gradio as gr
-
-def generate_quiz_from_file(file_path: str, num_questions: int, question_types: list):
-    return gr.Markdown(f"""
-        # Generated Quiz ({num_questions} questions)
-        TODO: implement
-    """)
+﻿import gradio as gr
+from phases.llm_client import generate_from_llm
 
 def render():
-    with gr.Tab("File (.txt)"):
-        with gr.Row():
-            with gr.Column():
-                file_input = gr.File(
-                    label="Upload text file (.txt)",
-                    file_types=[".txt"]
-                )
-                num_questions = gr.Slider(
-                    minimum=3,
-                    maximum=15,
-                    value=5,
-                    step=1,
-                    label="Number of Questions"
-                )
-                question_types = gr.CheckboxGroup(["Multiple choice", "True/false", "Short answer", "Open-ended", "Fill in the blank"], label="Question types", show_select_all=True)
-
-                generate_button = gr.Button("Generate", variant="primary")
-            
-            with gr.Column():
-                file_output = gr.Markdown(label="Generated Quiz")
-        
-        generate_button.click(
-            fn=generate_quiz_from_file,
-            inputs=[file_input, num_questions, question_types],
-            outputs=file_output
+    with gr.Tab("Upload .txt file"):
+        file_input = gr.File(
+            file_count="single",
+            file_types=[".txt"],
+            label="Upload a .txt file"
         )
+        num_q = gr.Slider(
+            minimum=1, maximum=50, step=1, value=5,
+            label="Number of questions"
+        )
+        q_types = gr.CheckboxGroup(
+            choices=["Multiple choice", "Short answer", "True/False", "Fill in the blank"],
+            value=[],
+            label="Question types (optional)"
+        )
+        btn = gr.Button("Generate quiz")
+        output = gr.Markdown()
+
+        def on_click_generate(file_obj, n, types):
+            if file_obj is None:
+                return "⚠️ Please upload a .txt file."
+            text = None
+            # Handle different possible types of file_obj
+            try:
+                # If it's a file-like object (with read)
+                if hasattr(file_obj, "read"):
+                    raw = file_obj.read()
+                    if isinstance(raw, (bytes, bytearray)):
+                        text = raw.decode("utf-8", errors="ignore")
+                    else:
+                        text = raw  # assume str
+                # If it's a str (filepath)
+                elif isinstance(file_obj, str):
+                    with open(file_obj, "r", encoding="utf-8", errors="ignore") as f:
+                        text = f.read()
+                else:
+                    return f"❗ Unsupported upload type: {type(file_obj)}"
+            except Exception as e:
+                return f"❗ Could not read file: {e}"
+            if not text or not text.strip():
+                return "⚠️ Uploaded file seems empty."
+
+            try:
+                return generate_from_llm(
+                    source_text=text,
+                    num_questions=n,
+                    question_types=types
+                )
+            except Exception as e:
+                return f"**Error calling Groq API:** {e}"
+
+        btn.click(fn=on_click_generate, inputs=[file_input, num_q, q_types], outputs=output)

@@ -1,4 +1,4 @@
-import gradio as gr
+﻿import gradio as gr
 from phases.quizzes import Quiz
 
 def render():
@@ -32,6 +32,7 @@ def render():
 
                 with gr.Row():
                     generate_button = gr.Button("Generate", variant="primary")
+                    llm_button = gr.Button("✨ Generate with AI",variant="primary")
                     shuffle_button = gr.Button("Shuffle", variant="secondary")
             
             with gr.Column():
@@ -42,8 +43,13 @@ def render():
                     analyze_button = gr.Button("Analyze", visible=False, variant="secondary")
         
         generate_button.click(
-            fn=quiz.generate_from_text,
-            inputs=[text_input, num_questions,question_types],
+            fn=lambda text, num, types: quiz.generate("text", text, num, types),
+            inputs=[text_input, num_questions, question_types],
+            outputs=[download_button, analyze_button, text_output]
+        )
+        llm_button.click(
+            fn=lambda text, num, types: quiz.generate("ai", text, num, types),
+            inputs=[text_input, num_questions, question_types], 
             outputs=[download_button, analyze_button, text_output]
         )
         shuffle_button.click(
