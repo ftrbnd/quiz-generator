@@ -1,6 +1,7 @@
 import gradio as gr
-import inputs.text_tab as text_tab
-import inputs.file_tab as file_tab
+from inputs import text_tab
+from inputs import file_tab
+from inputs import explanation_tab
 
 # -------- GLOBAL CSS (affects root HTML, not internal components) --------
 global_css = """
@@ -89,18 +90,12 @@ function applyCustomStyles() {
     shadow.appendChild(styleTag);
 }
 
-/* Run after load */
 setTimeout(applyCustomStyles, 600);
 </script>
 """
 
-# --------------------------------------------------------------------------
-#                           MAIN GRADIO APP
-# --------------------------------------------------------------------------
-
 with gr.Blocks(title="Automatic Quiz Generator") as demo:
 
-    # Inject CSS + JS required for modern theme
     gr.HTML(f"<style>{global_css}</style>")
     gr.HTML(shadow_dom_css)
 
@@ -112,6 +107,7 @@ with gr.Blocks(title="Automatic Quiz Generator") as demo:
     with gr.Tabs():
         text_tab.render()
         file_tab.render()
+        explanation_tab.render()
 
 if __name__ == "__main__":
     demo.launch(theme=gr.themes.Soft(), share=True)
