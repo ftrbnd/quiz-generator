@@ -1,5 +1,5 @@
 ﻿import gradio as gr
-from phases.quizzes import Quiz
+from src.phases.quizzes import Quiz
 
 def render():
     quiz = Quiz()
