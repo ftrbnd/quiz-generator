@@ -66,8 +66,7 @@ def generate_tag_report(tag_scores):
         print(f"  Correct: {score['correct']} / {score['total']}")
         print(f"  Accuracy: {accuracy:.2f}%\n")
 
-# 5. RUN EVERYTHING IN ONE GO
-if __name__ == "__main__":
+def run_question_tags():
     print("Available Tags in Question Bank:")
     all_tags = sorted({tag for q in question_bank for tag in q["tags"]})
     print(all_tags)
@@ -104,3 +103,8 @@ if __name__ == "__main__":
     with open("tag_template.json", "w") as f:
         json.dump({"selected_tags": selected_tags}, f, indent=4)
     print("Tag template saved as tag_template.json")
+
+
+# 5. RUN EVERYTHING IN ONE GO
+if __name__ == "__main__":
+    run_question_tags()

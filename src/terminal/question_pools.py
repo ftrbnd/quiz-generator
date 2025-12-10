@@ -52,9 +52,7 @@ def save_template(settings, filename="quiz_template.json"):
         json.dump(settings, f, indent=4)
     print(f"Template saved as {filename}")
 
-
-# RUN EVERYTHING (one go)
-if __name__ == "__main__":
+def run_question_pools():
     print("Generating quiz from question pools...\n")
 
     quiz = generate_quiz_from_pools(question_pools, pool_settings)
@@ -65,3 +63,8 @@ if __name__ == "__main__":
 
     # Save the pool settings
     save_template(pool_settings)
+
+
+# RUN EVERYTHING (one go)
+if __name__ == "__main__":
+    run_question_pools()

@@ -2,6 +2,7 @@ import gradio as gr
 from inputs import text_tab
 from inputs import file_tab
 from inputs import explanation_tab
+from inputs import terminal_tab
 
 # -------- GLOBAL CSS (affects root HTML, not internal components) --------
 global_css = """
@@ -108,6 +109,7 @@ with gr.Blocks(title="Automatic Quiz Generator") as demo:
         text_tab.render()
         file_tab.render()
         explanation_tab.render()
+        terminal_tab.render()
 
 if __name__ == "__main__":
     demo.launch(theme=gr.themes.Soft(), share=True)
