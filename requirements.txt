@@ -17,6 +17,11 @@ scipy==1.12
 
 reportlab>=4.0.0
 
+transformers==4.57.3
+torch==2.2.2
+torchvision==0.17.2
+
+
 # Additional NLTK data will be downloaded via:
 # python -m nltk.downloader punkt stopwords
 

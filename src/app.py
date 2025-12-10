@@ -1,7 +1,7 @@
 import gradio as gr
-from src.inputs import text_tab
-from src.inputs import file_tab
-from src.phases.quiz_generator import QuizAI   
+from inputs import text_tab
+from inputs import file_tab
+from phases.quiz_generator import QuizAI   
 
 # -------- GLOBAL CSS (affects root HTML, not internal components) --------
 global_css = """
@@ -128,13 +128,10 @@ with gr.Blocks(title="Automatic Quiz Generator") as demo:
     """)
 
     with gr.Tabs():
-
-        # ✅ Existing tabs (UNCHANGED)
         text_tab.render()
         file_tab.render()
 
-        # ✅ YOUR TAB (ADDED, NOTHING ELSE TOUCHED)
-        with gr.Tab("Document Quiz AI"):
+        with gr.Tab("Generate Quiz with Explanations"):
 
             file_input = gr.File(label="Upload .txt file")
             upload_btn = gr.Button("Upload Document")
