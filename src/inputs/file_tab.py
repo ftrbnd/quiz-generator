@@ -1,7 +1,9 @@
 ﻿import gradio as gr
-from phases.llm_client import generate_from_llm
+from phases.quizzes import Quiz
 
 def render():
+    quiz = Quiz()
+    
     with gr.Tab("Upload .txt file"):
         file_input = gr.File(
             file_count="single",
@@ -45,11 +47,16 @@ def render():
                 return "⚠️ Uploaded file seems empty."
 
             try:
-                return generate_from_llm(
-                    source_text=text,
+                result =  quiz.generate(
+                    "ai",
+                    input=text,
                     num_questions=n,
-                    question_types=types
+                    question_types=types,
+                    difficulty="easy"
                 )
+
+                markdown_output = result[2]
+                return markdown_output
             except Exception as e:
                 return f"**Error calling Groq API:** {e}"
 
