@@ -108,6 +108,7 @@ def generate_from_llm(
     source_text: str,
     num_questions: int = 5,
     question_types: Optional[List[str]] = None,
+    difficulty: str = None
 ) -> str:
     """
     Generates a quiz using Groq LLM with context-size protection.
@@ -132,6 +133,7 @@ def generate_from_llm(
     user_msg = f"""
 Create **{num_questions}** quiz questions based on the material below.
 Use question types: {type_str}.
+Difficulty levels include  easy, medium, and hard. Generate questions of a {difficulty} difficulty.
 
 Respond with a JSON object containing a "questions" array. Each question object must have:
 - "question": the question text (string)
