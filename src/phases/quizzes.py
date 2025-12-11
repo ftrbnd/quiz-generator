@@ -47,7 +47,6 @@ class Quiz:
         
         try:
             all_questions = self._generate_with_ai(input, num_questions, question_types, difficulty) if gen_type == 'ai' else self._generate_from_text(input, num_questions, question_types)
-            print(all_questions)
 
             self.input_text = input
             self.current_quiz_state['questions'] = all_questions
@@ -412,3 +411,40 @@ class Quiz:
             gr.update(visible=True),
             gr.Markdown(self.markdown_result)
         )
+
+    def get_text_from_file(self, file_obj, gen_type: str, n, types, difficulty):
+        if file_obj is None:
+            return "⚠️ Please upload a .txt file."
+        text = None
+        # Handle different possible types of file_obj
+        try:
+            # If it's a file-like object (with read)
+            if hasattr(file_obj, "read"):
+                raw = file_obj.read()
+                if isinstance(raw, (bytes, bytearray)):
+                    text = raw.decode("utf-8", errors="ignore")
+                else:
+                    text = raw  # assume str
+            # If it's a str (filepath)
+            elif isinstance(file_obj, str):
+                with open(file_obj, "r", encoding="utf-8", errors="ignore") as f:
+                    text = f.read()
+            else:
+                return f"❗ Unsupported upload type: {type(file_obj)}"
+        except Exception as e:
+            return f"❗ Could not read file: {e}"
+        if not text or not text.strip():
+            return "⚠️ Uploaded file seems empty."
+
+        try:
+            return self.generate(
+                gen_type=gen_type,
+                input=text,
+                num_questions=n,
+                question_types=types,
+                difficulty=difficulty
+            )
+           
+        
+        except Exception as e:
+            return f"**Error calling Groq API:** {e}"

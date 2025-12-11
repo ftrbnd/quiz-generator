@@ -44,6 +44,7 @@ class QuizAI:
         return f"Detected material keywords: {', '.join(keywords)}"
 
     def generate_quiz(self):
+        print("hi")
         """Generate 5 multiple-choice questions"""
         if not self.documents:
             return ""
