@@ -12,6 +12,8 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER
 
+difficulties = ["easy", "medium", "hard"]
+
 class Quiz:
     def __init__(self):
         self.input_text = ''
@@ -23,7 +25,7 @@ class Quiz:
         }
 
 # gen_type can be 'ai' or 'text'
-    def generate(self, gen_type: str, input: str, num_questions: int, question_types: list):
+    def generate(self, gen_type: str, input: str, num_questions: int, question_types: list, difficulty: str):
         if not input or not input.strip():
             return (
                 gr.update(visible=False),
@@ -36,16 +38,22 @@ class Quiz:
                 gr.update(visible=False),
                 "Please select at least one question type."
             )
+        if difficulty not in difficulties and gen_type != "ai":
+            return (
+                gr.update(visible=False),
+                gr.update(visible=False),
+                f"Please select a valid difficulty ({difficulties})."
+            )
         
         try:
-            all_questions = self._generate_with_ai(input, num_questions, question_types) if gen_type == 'ai' else self._generate_from_text(input, num_questions, question_types)
+            all_questions = self._generate_with_ai(input, num_questions, question_types, difficulty) if gen_type == 'ai' else self._generate_from_text(input, num_questions, question_types)
             print(all_questions)
 
             self.input_text = input
             self.current_quiz_state['questions'] = all_questions
             self.current_quiz_state['num_questions'] = len(all_questions)
             self.current_quiz_state['question_types'] = question_types
-            self.markdown_result = self.format_markdown(all_questions, len(all_questions))
+            self.markdown_result = self.format_markdown(all_questions, difficulty, len(all_questions))
 
             show_buttons = "0 questions" not in self.markdown_result
             return (
@@ -60,11 +68,12 @@ class Quiz:
                 f"**Error generating questions:** {e}"
             )
 
-    def _generate_with_ai(self, input: str, num_questions: int, question_types: list):
+    def _generate_with_ai(self, input: str, num_questions: int, question_types: list, difficulty: str):
         result = llm_client.generate_from_llm(
             source_text=input,
             num_questions=num_questions,
-            question_types=question_types
+            question_types=question_types,
+            difficulty=difficulty
         )
 
         return result
@@ -114,7 +123,7 @@ class Quiz:
             gr.Markdown(self.markdown_result)
         )
     
-    def format_markdown(self, questions: list, num_questions: int):
+    def format_markdown(self, questions: list, difficulty: str, num_questions: int):
         """Format given questions into markdown, as a string"""
         if not questions:
             return "# Generated Quiz (0 questions)\n\nNo questions generated."
@@ -128,7 +137,7 @@ class Quiz:
             questions_by_type[q_type].append(q)
 
         
-        output = f"\n\n# Generated Quiz ({num_questions} questions)\n\n"
+        output = f"\n\n# Generated Quiz ({num_questions} questions, {difficulty} difficulty)\n\n"
         
         type_titles = {
             'fill_blank': '## Fill in the blank Questions',

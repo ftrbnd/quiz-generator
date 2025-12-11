@@ -29,6 +29,10 @@ def render():
                     label="Question types", 
                     show_select_all=True
                 )
+                difficulty_radio = gr.Radio(
+                    ["easy", "medium", "hard"],
+                    label="Difficulty",
+                )
 
                 with gr.Row():
                     generate_button = gr.Button("Generate", variant="primary")
@@ -43,13 +47,13 @@ def render():
                     analyze_button = gr.Button("Analyze", visible=False, variant="secondary")
         
         generate_button.click(
-            fn=lambda text, num, types: quiz.generate("text", text, num, types),
-            inputs=[text_input, num_questions, question_types],
+            fn=lambda text, num, types, difficulty: quiz.generate("text", text, num, types, difficulty),
+            inputs=[text_input, num_questions, question_types, difficulty_radio],
             outputs=[download_button, analyze_button, text_output]
         )
         llm_button.click(
-            fn=lambda text, num, types: quiz.generate("ai", text, num, types),
-            inputs=[text_input, num_questions, question_types], 
+            fn=lambda text, num, types, difficulty: quiz.generate("ai", text, num, types, difficulty),
+            inputs=[text_input, num_questions, question_types, difficulty_radio], 
             outputs=[download_button, analyze_button, text_output]
         )
         shuffle_button.click(
